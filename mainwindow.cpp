@@ -6,7 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     // Dando los estilos a cada uno de los botones del reproductor
-    // Prueba de repositorio 1!
+    // Prueba de repositorio 1! -------------------------------------
     ui->setupUi(this);
 
     Player = new QMediaPlayer();
