@@ -79,3 +79,9 @@ void MainWindow::on_pushButton_adelantar_clicked()
 {
     Player->setPosition(Player->position() + 10000); // Adelanta 10 segundos
 }
+
+void MainWindow::on_treeView_collapsed(const QModelIndex &index)
+{
+
+}
+

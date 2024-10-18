@@ -31,6 +31,8 @@ private slots:
     void on_pushButton_stop_clicked();
     void on_pushButton_adelantar_clicked();
 
+    void on_treeView_collapsed(const QModelIndex &index);
+
 private:
     Ui::MainWindow *ui;
     QMediaPlayer *Player;
