@@ -7,6 +7,7 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtGui>
+#include <QFileStystemModel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -31,7 +32,11 @@ private slots:
     void on_pushButton_stop_clicked();
     void on_pushButton_adelantar_clicked();
 
+    //Biblioteca
+    void opneMediaFolder(); //Funcion para abrir la carpeta mutimedia
+    void onFileSelected(const QModelIdex &index); //Funcion para gestionar la seleccion de un archivo
     void on_treeView_collapsed(const QModelIndex &index);
+    //Melo...(creo)
 
 private:
     Ui::MainWindow *ui;

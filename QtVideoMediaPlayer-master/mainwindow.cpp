@@ -1,9 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QFielDialog>
+#include <QDir>
+#include <QMessageBox>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , dirModel(new QFileSystemModel(this))
 {
     // Dando los estilos a cada uno de los botones del reproductor
     //Prueba de repositorio
@@ -22,6 +26,17 @@ MainWindow::MainWindow(QWidget *parent)
     ui->verticalSlider_Volume->setMinimum(0);
     ui->verticalSlider_Volume->setMaximum(100);
     Player->setVolume(ui->verticalSlider_Volume->value());
+
+    //Biblioteca
+    //configurar el modelo para aceptar archivos de audio y video
+    dirModel->setNameFilters(QStringList() "*.mp3" << "*.mav" << "*.flac" << ".*mp4" << "*.avi" << ".mkv");
+    dirModel->setNameFilterDisable(false); //Motrar solo los archivos filtrados
+
+    //Asignar el modelo al QTreeView
+    ui->treeView->setModel(dirModel);
+    //Conectar la seleccion de un archivo en el TreeView
+    connect(ui->treeView, &QTreeView::doubleClicked, this, &MainWindow::openMediaFolder);
+
 }
 
 MainWindow::~MainWindow()
@@ -83,5 +98,26 @@ void MainWindow::on_pushButton_adelantar_clicked()
 void MainWindow::on_treeView_collapsed(const QModelIndex &index)
 {
 
+}
+
+void MainWindow::openMediaFolder()
+{
+    // Abrir un QFileDialog para seleccionar la carpeta con archivos de audio y video
+    QString folderPath = QFileDialog::getExistingDirectory(this, tr("Open Media Folder"), QString());
+
+    if (!folderPath.isEmpty()) {
+        // Establecer la carpeta como la raíz del QFileSystemModel
+        dirModel->setRootPath(folderPath);
+        ui->treeView->setRootIndex(dirModel->index(folderPath));
+    }
+}
+
+void MainWindow::onFileSelected(const QModelIndex &index)
+{
+    // Obtener la ruta completa del archivo seleccionado
+    QString filePath = dirModel->filePath(index);
+
+    // Mostrar un mensaje con la ruta del archivo seleccionado
+    QMessageBox::information(this, "File Selected", "You selected: " + filePath);
 }
 
