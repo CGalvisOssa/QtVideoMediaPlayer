@@ -23,6 +23,8 @@ public:
     ~MainWindow();
 
 private slots:
+    void durationChanged(qint64 duration);
+    void positionChanged(qint64 duration);
     void on_pushButton_pausar_clicked();
     void on_horizontalSlider_valueChanged(int value);
     void on_pushButton_retroceder_clicked();
@@ -31,6 +33,8 @@ private slots:
     void on_pushButton_stop_clicked();
     void on_pushButton_adelantar_clicked();
 
+    void on_actionOpen_triggered();
+
 private:
     Ui::MainWindow *ui;
     QMediaPlayer *Player;
@@ -38,6 +42,8 @@ private:
     qint64 mDuration;
     bool IS_Pause = true;
     bool IS_Muted = false;
+
+    void updateDuration(qint64 Duration);
 };
 
 #endif // MAINWINDOW_H

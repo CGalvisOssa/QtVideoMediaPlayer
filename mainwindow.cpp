@@ -5,11 +5,12 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    // Dando los estilos a cada uno de los botones del reproductor
-    // Prueba de repositorio 1! -------------------------------------
     ui->setupUi(this);
 
-    Player = new QMediaPlayer();
+    // Inicializar el reproductor de video y el control de audio
+    Player = new QMediaPlayer(this);
+    QAudioOutput* audioOutput = new QAudioOutput(this);
+    Player->setAudioOutput(audioOutput);
 
     // Asignar iconos a los botones
     ui->pushButton_pausar->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
@@ -19,14 +20,55 @@ MainWindow::MainWindow(QWidget *parent)
     ui->pushButton_mute->setIcon(style()->standardIcon(QStyle::SP_MediaVolume));
 
     // Establecer el rango del slider de volumen
-    ui->verticalSlider_Volume->setMinimum(0);
-    ui->verticalSlider_Volume->setMaximum(100);
-    Player->setVolume(ui->verticalSlider_Volume->value());
+    ui->verticalSlider->setMinimum(0);
+    ui->verticalSlider->setMaximum(100);
+    audioOutput->setVolume(ui->verticalSlider->value() / 100.0);  // Configura el volumen inicial
+
+
+
+    connect(Player, &QMediaPlayer::durationChanged, this, &MainWindow::durationChanged);
+    connect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
+
+    ui->horizontalSlider->setRange(0, Player->duration() / 1000);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::durationChanged(qint64 duration)
+{
+    mDuration = duration / 1000;
+    ui->horizontalSlider->setMaximum(mDuration);
+}
+
+void MainWindow::positionChanged(qint64 duration)
+{
+    if (!ui->horizontalSlider->isSliderDown())
+    {
+        ui->horizontalSlider->setValue(duration / 1000);
+    }
+    updateDuration(duration / 1000);
+}
+
+void MainWindow::updateDuration(qint64 Duration)
+{
+    if ( Duration || mDuration)
+    {
+        if (Duration || mDuration)
+        {
+            QTime CurrentTime((Duration / 3600) % 60, (Duration / 60) % 60, Duration % 60, (Duration * 1000) % 1000);
+            QTime TotalTime((mDuration / 3600) % 60, (mDuration / 60) % 60, mDuration % 60, (mDuration * 1000) % 1000);
+            QString Format = "";
+            if (mDuration > 3600) Format = "hh:mm:ss";
+            else Format = "mm:ss";
+
+            ui->label_time->setText(CurrentTime.toString(Format));
+
+    }
+
+}
 }
 
 void MainWindow::on_pushButton_pausar_clicked()
@@ -54,20 +96,22 @@ void MainWindow::on_pushButton_retroceder_clicked()
 
 void MainWindow::on_pushButton_mute_clicked()
 {
+    QAudioOutput* audioOutput = static_cast<QAudioOutput*>(Player->audioOutput());
     if (IS_Muted == false) {
         IS_Muted = true;  // Asignar valor verdadero (silenciar)
         ui->pushButton_mute->setIcon(style()->standardIcon(QStyle::SP_MediaVolumeMuted)); // Cambiar icono a silenciado
-        Player->setMuted(true);  // Silenciar el reproductor
+        audioOutput->setMuted(true);  // Silenciar el audio
     } else {
         IS_Muted = false;  // Asignar valor falso (activar sonido)
         ui->pushButton_mute->setIcon(style()->standardIcon(QStyle::SP_MediaVolume));  // Cambiar icono a sonido activado
-        Player->setMuted(false);  // Activar sonido
+        audioOutput->setMuted(false);  // Activar sonido
     }
 }
 
 void MainWindow::on_verticalSlider_valueChanged(int value)
 {
-    Player->setVolume(value); // Ajustar el volumen
+    QAudioOutput* audioOutput = static_cast<QAudioOutput*>(Player->audioOutput());
+    audioOutput->setVolume(value / 100.0); // Ajustar el volumen
 }
 
 void MainWindow::on_pushButton_stop_clicked()
@@ -79,3 +123,36 @@ void MainWindow::on_pushButton_adelantar_clicked()
 {
     Player->setPosition(Player->position() + 10000); // Adelanta 10 segundos
 }
+
+void MainWindow::on_actionOpen_triggered()
+{
+    QString fileName = QFileDialog::getOpenFileName(
+        this,
+        tr("Seleccionar archivo de video"),
+        "",
+        tr("Archivos MP4 (*.mp4)")
+        );
+
+    // Crea un nuevo widget de video
+    QVideoWidget* video = new QVideoWidget();
+
+    // Ajusta la geometría del widget de video dentro de groupBox_Video
+    video->setGeometry(
+        5, 5,
+        ui->groupBox_Video->width() - 10,
+        ui->groupBox_Video->height() - 10
+        );
+
+    // Establece el widget de video como hijo de groupBox_Video
+    video->setParent(ui->groupBox_Video);
+
+    // Configura el reproductor de video
+    Player->setVideoOutput(video);
+    Player->setSource(QUrl::fromLocalFile(fileName));  // Usa setSource en lugar de setMedia
+
+    // Muestra el widget de video
+    video->setVisible(true);
+    video->show();
+}
+
+

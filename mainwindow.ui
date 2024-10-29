@@ -284,10 +284,16 @@ QPushButton:pressed {
     <property name="title">
      <string>Selecciona el video</string>
     </property>
+    <addaction name="actionOpen"/>
    </widget>
    <addaction name="menuSelecciona_el_video"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>
