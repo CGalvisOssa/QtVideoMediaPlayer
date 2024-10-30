@@ -29,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(Player, &QMediaPlayer::durationChanged, this, &MainWindow::durationChanged);
     connect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
 
-    ui->horizontalSlider->setRange(0, Player->duration() / 1000);
+    ui->progressBar->setRange(0, Player->duration() / 1000);
 }
 
 MainWindow::~MainWindow()
@@ -40,36 +40,36 @@ MainWindow::~MainWindow()
 void MainWindow::durationChanged(qint64 duration)
 {
     mDuration = duration / 1000;
-    ui->horizontalSlider->setMaximum(mDuration);
+    ui->progressBar->setMaximum(mDuration);
 }
 
 void MainWindow::positionChanged(qint64 duration)
 {
-    if (!ui->horizontalSlider->isSliderDown())
+    if (!ui->progressBar->isSliderDown())
     {
-        ui->horizontalSlider->setValue(duration / 1000);
+        ui->progressBar->setValue(duration / 1000);
     }
     updateDuration(duration / 1000);
 }
 
 void MainWindow::updateDuration(qint64 Duration)
 {
-    if ( Duration || mDuration)
+    if (Duration || mDuration)
     {
-        if (Duration || mDuration)
-        {
-            QTime CurrentTime((Duration / 3600) % 60, (Duration / 60) % 60, Duration % 60, (Duration * 1000) % 1000);
-            QTime TotalTime((mDuration / 3600) % 60, (mDuration / 60) % 60, mDuration % 60, (mDuration * 1000) % 1000);
-            QString Format = "";
-            if (mDuration > 3600) Format = "hh:mm:ss";
-            else Format = "mm:ss";
+        QTime CurrentTime((Duration / 3600) % 60, (Duration / 60) % 60, Duration % 60, (Duration * 1000) % 1000);
+        QTime TotalTime((mDuration / 3600) % 60, (mDuration / 60) % 60, mDuration % 60, (mDuration * 1000) % 1000);
 
-            ui->label_time->setText(CurrentTime.toString(Format));
+        QString Format = (mDuration > 3600) ? "hh:mm:ss" : "mm:ss";
+        ui->label_time->setText(CurrentTime.toString(Format));
 
+        // Configurar el valor de la barra de progreso
+        int progress = static_cast<int>((static_cast<double>(Duration) / mDuration) * 100);  // Cálculo del progreso en porcentaje
+        ui->progressBar->setValue(progress);
     }
+}
 
-}
-}
+
+
 
 void MainWindow::on_pushButton_pausar_clicked()
 {
