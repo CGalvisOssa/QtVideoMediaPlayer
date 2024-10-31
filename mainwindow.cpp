@@ -52,6 +52,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Agregar las acciones al menú
     fileMenu->addAction(actionOpen);
     fileMenu->addAction(actionAddFile);
+
+    // Añade esta línea junto con las otras conexiones
+    connect(Player, &QMediaPlayer::mediaStatusChanged, this, &MainWindow::onMediaStatusChanged);
 }
 
 MainWindow::~MainWindow()
@@ -84,11 +87,10 @@ void MainWindow::setupTreeView()
 
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
 {
-    // Manejar el click en un elemento del TreeView
     if (index.isValid()) {
+        currentSongIndex = index.row();  // Actualizar el índice actual
         QStandardItem *item = model->itemFromIndex(index);
         QString filePath = item->data(Qt::UserRole).toString();
-        // Cargar y reproducir el video seleccionado
         Player->setSource(QUrl::fromLocalFile(filePath));
         Player->play();
     }
@@ -122,25 +124,24 @@ void MainWindow::on_actionOpen_triggered()
         );
 
     if (!folderPath.isEmpty()) {
-        // Crear un objeto QDir para la carpeta seleccionada
+        // Limpiar el modelo existente
+        model->clear();
+        model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
+
         QDir directory(folderPath);
-
-        // Definir los filtros para los tipos de archivo que quieres cargar
         QStringList filters;
-        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv"; // Puedes añadir más formatos
-
-        // Obtener la lista de archivos que coinciden con los filtros
+        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv";
         QFileInfoList files = directory.entryInfoList(filters, QDir::Files | QDir::NoDotAndDotDot);
 
-        // Añadir cada archivo al TreeView
         foreach(const QFileInfo &fileInfo, files) {
             QStandardItem *item = new QStandardItem(fileInfo.fileName());
             item->setData(fileInfo.filePath(), Qt::UserRole);
             model->appendRow(item);
         }
 
-        // Si hay archivos en la lista, reproducir el primero
         if (!files.isEmpty()) {
+            currentSongIndex = 0;  // Inicializar el índice
+
             QVideoWidget* video = new QVideoWidget();
             video->setGeometry(
                 5, 5,
@@ -151,6 +152,7 @@ void MainWindow::on_actionOpen_triggered()
 
             Player->setVideoOutput(video);
             Player->setSource(QUrl::fromLocalFile(files.first().filePath()));
+            Player->play();  // Comenzar reproducción
 
             video->setVisible(true);
             video->show();
@@ -190,6 +192,45 @@ void MainWindow::on_actionAddFile_triggered()
     }
 }
 
+void MainWindow::playNextSong()
+{
+    qDebug() << "Intentando reproducir siguiente canción";
+    qDebug() << "Índice actual:" << currentSongIndex;
+
+    // Si no hay canciones en la lista
+    if (model->rowCount() == 0) {
+        qDebug() << "No hay canciones en la lista";
+        return;
+    }
+
+    // Incrementar el índice
+    currentSongIndex++;
+    if (currentSongIndex >= model->rowCount()) {
+        currentSongIndex = 0;  // Volver al principio si llegamos al final
+    }
+
+    QModelIndex nextIndex = model->index(currentSongIndex, 0);
+    if (nextIndex.isValid()) {
+        QString filePath = model->itemFromIndex(nextIndex)->data(Qt::UserRole).toString();
+        qDebug() << "Reproduciendo:" << filePath;
+
+        // Actualizar la selección visual en el TreeView
+        ui->treeView->setCurrentIndex(nextIndex);
+
+        Player->setSource(QUrl::fromLocalFile(filePath));
+        Player->play();
+    }
+}
+
+void MainWindow::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
+{
+    qDebug() << "Estado del reproductor cambiado:" << status;  // Para depuración
+
+    if (status == QMediaPlayer::EndOfMedia) {
+        qDebug() << "Final de la canción detectado";  // Para depuración
+        playNextSong();
+    }
+}
 //hasta aqui xd
 
 

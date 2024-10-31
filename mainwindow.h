@@ -43,6 +43,9 @@ private slots:
     //Implemetaciones
     void showTreeViewContextMenu(const QPoint &pos);
     void removeSelectedVideo();
+    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
+    //Pasar siguiente cancion
+    void playNextSong();
 
 private:
     Ui::MainWindow *ui;
@@ -54,6 +57,8 @@ private:
     //Biblioteca
     QStandardItemModel *model; // Modelo para el TreeView
     void setupTreeView(); // Función para configurar el TreeView
+    //Indice de la cancion actual
+    int currentSongIndex = -1;  // Inicializado a -1
     //Hasta aqui
     void updateDuration(qint64 Duration);
 };
