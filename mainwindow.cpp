@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QFileDialog>
+#include <QStandardItemModel>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,17 +27,171 @@ MainWindow::MainWindow(QWidget *parent)
     audioOutput->setVolume(ui->verticalSlider->value() / 100.0);  // Configura el volumen inicial
 
 
-
     connect(Player, &QMediaPlayer::durationChanged, this, &MainWindow::durationChanged);
     connect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
 
     ui->progressBar->setRange(0, Player->duration() / 1000);
+
+    //Inicalizar y configurar el TreeView
+    setupTreeView();
+
+    // Crear acciones para el menú
+    QAction *actionOpen = new QAction("Abrir carpeta", this);
+    QAction *actionAddFile = new QAction("Agregar archivo", this);
+
+    // Conectar las acciones a sus respectivos slots
+    connect(actionOpen, &QAction::triggered, this, &MainWindow::on_actionOpen_triggered);
+    connect(actionAddFile, &QAction::triggered, this, &MainWindow::on_actionAddFile_triggered);
+
+    // Crear un menú "Archivo" si no existe
+    QMenu *fileMenu = menuBar()->findChild<QMenu *>("menuArchivo");
+    if (!fileMenu) {
+        fileMenu = menuBar()->addMenu("Archivo");
+    }
+
+    // Agregar las acciones al menú
+    fileMenu->addAction(actionOpen);
+    fileMenu->addAction(actionAddFile);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+//Biblioteca
+void MainWindow::setupTreeView()
+{
+    // Crear y configurar el modelo
+    model = new QStandardItemModel(this);
+    model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
+
+    // Asignar el modelo al TreeView
+    ui->treeView->setModel(model);
+
+    // Configurar el TreeView
+    ui->treeView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->treeView->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Conectar la señal clicked
+    connect(ui->treeView, &QTreeView::clicked, this, &MainWindow::on_treeView_clicked);
+    connect(ui->treeView, &QTreeView::customContextMenuRequested,
+            this, &MainWindow::showTreeViewContextMenu);
+
+}
+
+void MainWindow::on_treeView_clicked(const QModelIndex &index)
+{
+    // Manejar el click en un elemento del TreeView
+    if (index.isValid()) {
+        QStandardItem *item = model->itemFromIndex(index);
+        QString filePath = item->data(Qt::UserRole).toString();
+        // Cargar y reproducir el video seleccionado
+        Player->setSource(QUrl::fromLocalFile(filePath));
+        Player->play();
+    }
+}
+void MainWindow::showTreeViewContextMenu(const QPoint &pos)
+{
+    QModelIndex index = ui->treeView->indexAt(pos);
+    if (index.isValid()) {
+        QMenu contextMenu(this);
+        QAction *removeAction = contextMenu.addAction("Eliminar");
+        connect(removeAction, &QAction::triggered, this, &MainWindow::removeSelectedVideo);
+        contextMenu.exec(ui->treeView->viewport()->mapToGlobal(pos));
+    }
+}
+
+void MainWindow::removeSelectedVideo()
+{
+    QModelIndex index = ui->treeView->currentIndex();
+    if (index.isValid()) {
+        model->removeRow(index.row());
+    }
+}
+
+void MainWindow::on_actionOpen_triggered()
+{
+    QString folderPath = QFileDialog::getExistingDirectory(
+        this,
+        tr("Seleccionar carpeta con videos"),
+        "",
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+        );
+
+    if (!folderPath.isEmpty()) {
+        // Crear un objeto QDir para la carpeta seleccionada
+        QDir directory(folderPath);
+
+        // Definir los filtros para los tipos de archivo que quieres cargar
+        QStringList filters;
+        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv"; // Puedes añadir más formatos
+
+        // Obtener la lista de archivos que coinciden con los filtros
+        QFileInfoList files = directory.entryInfoList(filters, QDir::Files | QDir::NoDotAndDotDot);
+
+        // Añadir cada archivo al TreeView
+        foreach(const QFileInfo &fileInfo, files) {
+            QStandardItem *item = new QStandardItem(fileInfo.fileName());
+            item->setData(fileInfo.filePath(), Qt::UserRole);
+            model->appendRow(item);
+        }
+
+        // Si hay archivos en la lista, reproducir el primero
+        if (!files.isEmpty()) {
+            QVideoWidget* video = new QVideoWidget();
+            video->setGeometry(
+                5, 5,
+                ui->groupBox_Video->width() - 10,
+                ui->groupBox_Video->height() - 10
+                );
+            video->setParent(ui->groupBox_Video);
+
+            Player->setVideoOutput(video);
+            Player->setSource(QUrl::fromLocalFile(files.first().filePath()));
+
+            video->setVisible(true);
+            video->show();
+        }
+    }
+}
+void MainWindow::on_actionAddFile_triggered()
+{
+    QStringList fileNames = QFileDialog::getOpenFileNames(
+        this,
+        tr("Seleccionar archivos de video"),
+        "",
+        tr("Archivos multimedia (*.mp4 *.mp3 *.avi *.mkv)")
+        );
+
+    foreach(const QString &fileName, fileNames) {
+        QFileInfo fileInfo(fileName);
+        QStandardItem *item = new QStandardItem(fileInfo.fileName());
+        item->setData(fileName, Qt::UserRole);
+        model->appendRow(item);
+    }
+
+    if (!fileNames.isEmpty()) {
+        QVideoWidget* video = new QVideoWidget();
+        video->setGeometry(
+            5, 5,
+            ui->groupBox_Video->width() - 10,
+            ui->groupBox_Video->height() - 10
+            );
+        video->setParent(ui->groupBox_Video);
+
+        Player->setVideoOutput(video);
+        Player->setSource(QUrl::fromLocalFile(fileNames.first()));
+
+        video->setVisible(true);
+        video->show();
+    }
+}
+
+//hasta aqui xd
+
 
 void MainWindow::durationChanged(qint64 duration)
 {
@@ -54,21 +210,12 @@ void MainWindow::positionChanged(qint64 duration)
 
 void MainWindow::updateDuration(qint64 Duration)
 {
-    if (Duration || mDuration)
-    {
-        QTime CurrentTime((Duration / 3600) % 60, (Duration / 60) % 60, Duration % 60, (Duration * 1000) % 1000);
-        QTime TotalTime((mDuration / 3600) % 60, (mDuration / 60) % 60, mDuration % 60, (mDuration * 1000) % 1000);
+    QTime CurrentTime((Duration / 3600) % 60, (Duration / 60) % 60, Duration % 60);
+    QTime TotalTime((mDuration / 3600) % 60, (mDuration / 60) % 60, mDuration % 60);
 
-        QString Format = (mDuration > 3600) ? "hh:mm:ss" : "mm:ss";
-        ui->label_time->setText(CurrentTime.toString(Format));
-
-        // Configurar el valor de la barra de progreso
-        int progress = static_cast<int>((static_cast<double>(Duration) / mDuration) * 100);  // Cálculo del progreso en porcentaje
-        ui->progressBar->setValue(progress);
-    }
+    QString Format = (mDuration > 3600) ? "hh:mm:ss" : "mm:ss";
+    ui->label_time->setText(CurrentTime.toString(Format) + " / " + TotalTime.toString(Format));
 }
-
-
 
 
 void MainWindow::on_pushButton_pausar_clicked()
@@ -123,36 +270,3 @@ void MainWindow::on_pushButton_adelantar_clicked()
 {
     Player->setPosition(Player->position() + 10000); // Adelanta 10 segundos
 }
-
-void MainWindow::on_actionOpen_triggered()
-{
-    QString fileName = QFileDialog::getOpenFileName(
-        this,
-        tr("Seleccionar archivo de video"),
-        "",
-        tr("Archivos MP4 (*.mp4)")
-        );
-
-    // Crea un nuevo widget de video
-    QVideoWidget* video = new QVideoWidget();
-
-    // Ajusta la geometría del widget de video dentro de groupBox_Video
-    video->setGeometry(
-        5, 5,
-        ui->groupBox_Video->width() - 10,
-        ui->groupBox_Video->height() - 10
-        );
-
-    // Establece el widget de video como hijo de groupBox_Video
-    video->setParent(ui->groupBox_Video);
-
-    // Configura el reproductor de video
-    Player->setVideoOutput(video);
-    Player->setSource(QUrl::fromLocalFile(fileName));  // Usa setSource en lugar de setMedia
-
-    // Muestra el widget de video
-    video->setVisible(true);
-    video->show();
-}
-
-

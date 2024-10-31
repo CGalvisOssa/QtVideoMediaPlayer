@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>976</width>
+    <width>1054</width>
     <height>600</height>
    </rect>
   </property>
@@ -219,8 +219,8 @@ QPushButton:pressed {
    <widget class="QPushButton" name="pushButton_mute">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>130</y>
+      <x>690</x>
+      <y>180</y>
       <width>71</width>
       <height>71</height>
      </rect>
@@ -270,13 +270,23 @@ QPushButton:pressed {
      <string/>
     </property>
    </widget>
+   <widget class="QTreeView" name="treeView">
+    <property name="geometry">
+     <rect>
+      <x>800</x>
+      <y>80</y>
+      <width>221</width>
+      <height>291</height>
+     </rect>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>976</width>
+     <width>1054</width>
      <height>25</height>
     </rect>
    </property>

@@ -7,6 +7,8 @@
 #include <QtCore>
 #include <QtWidgets>
 #include <QtGui>
+#include <QTreeView>
+#include <QStandardItemModel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -34,6 +36,13 @@ private slots:
     void on_pushButton_adelantar_clicked();
 
     void on_actionOpen_triggered();
+    void on_actionAddFile_triggered();
+
+    //Biblioteca
+    void on_treeView_clicked(const QModelIndex &index); // Nuevo slot para manejar clicks
+    //Implemetaciones
+    void showTreeViewContextMenu(const QPoint &pos);
+    void removeSelectedVideo();
 
 private:
     Ui::MainWindow *ui;
@@ -42,7 +51,10 @@ private:
     qint64 mDuration;
     bool IS_Pause = true;
     bool IS_Muted = false;
-
+    //Biblioteca
+    QStandardItemModel *model; // Modelo para el TreeView
+    void setupTreeView(); // Función para configurar el TreeView
+    //Hasta aqui
     void updateDuration(qint64 Duration);
 };
 
