@@ -66,10 +66,9 @@ MainWindow::~MainWindow()
 void MainWindow::setupTreeView()
 {
     // Crear y configurar el modelo
-    model = new QStandardItemModel(this);
+    model = new DragDropModel(this);
     model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
 
-    // Asignar el modelo al TreeView
     ui->treeView->setModel(model);
 
     // Configurar el TreeView
@@ -78,11 +77,16 @@ void MainWindow::setupTreeView()
     ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-    // Conectar la señal clicked
+    // Agregar estas nuevas líneas aquí:
+    ui->treeView->setDragEnabled(true);
+    ui->treeView->setAcceptDrops(true);
+    ui->treeView->setDropIndicatorShown(true);
+    ui->treeView->setDragDropMode(QAbstractItemView::InternalMove);
+
+    // Mantén las conexiones existentes
     connect(ui->treeView, &QTreeView::clicked, this, &MainWindow::on_treeView_clicked);
     connect(ui->treeView, &QTreeView::customContextMenuRequested,
             this, &MainWindow::showTreeViewContextMenu);
-
 }
 
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
