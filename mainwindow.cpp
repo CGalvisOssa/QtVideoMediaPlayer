@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->verticalSlider->setMaximum(100);
     audioOutput->setVolume(ui->verticalSlider->value() / 100.0);  // Configura el volumen inicial
 
-
+    //conexion de señales y slots (actualiza posición video)
     connect(Player, &QMediaPlayer::durationChanged, this, &MainWindow::durationChanged);
     connect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
 
@@ -65,33 +65,34 @@ MainWindow::~MainWindow()
 //Biblioteca
 void MainWindow::setupTreeView()
 {
-    // Crear y configurar el modelo
+    // Crear y configurar el modelo (permite gestionen elementos)
     model = new DragDropModel(this);
     model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
 
+    //Muestra los elementos añadidos
     ui->treeView->setModel(model);
 
     // Configurar el TreeView
-    ui->treeView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->treeView->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->treeView->setEditTriggers(QAbstractItemView::NoEditTriggers); // NO Editar texto
+    ui->treeView->setSelectionMode(QAbstractItemView::SingleSelection); // Un Solo Elemento a la Vez
+    ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);  // Se Seleccione la Fila Correspondiente (Comportamiento)
+    ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu); // Menu Contextual
 
     // Agregar estas nuevas líneas aquí:
-    ui->treeView->setDragEnabled(true);
-    ui->treeView->setAcceptDrops(true);
-    ui->treeView->setDropIndicatorShown(true);
-    ui->treeView->setDragDropMode(QAbstractItemView::InternalMove);
+    ui->treeView->setDragEnabled(true); // Deslizar Canción
+    ui->treeView->setAcceptDrops(true); // Soltar al Deslizar Canción
+    ui->treeView->setDropIndicatorShown(true); // Indicador Caiga Canción
+    ui->treeView->setDragDropMode(QAbstractItemView::InternalMove); //
 
     // Mantén las conexiones existentes
-    connect(ui->treeView, &QTreeView::clicked, this, &MainWindow::on_treeView_clicked);
-    connect(ui->treeView, &QTreeView::customContextMenuRequested,
+    connect(ui->treeView, &QTreeView::clicked, this, &MainWindow::on_treeView_clicked); //Click
+    connect(ui->treeView, &QTreeView::customContextMenuRequested, //Menú Conceptual
             this, &MainWindow::showTreeViewContextMenu);
 }
 
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
 {
-    if (index.isValid()) {
+    if (index.isValid()) {    // Verifica elemento click - Recupera elemento (ruta) - Se estabece y reproduce
         currentSongIndex = index.row();  // Actualizar el índice actual
         QStandardItem *item = model->itemFromIndex(index);
         QString filePath = item->data(Qt::UserRole).toString();
@@ -101,18 +102,18 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 }
 void MainWindow::showTreeViewContextMenu(const QPoint &pos)
 {
-    QModelIndex index = ui->treeView->indexAt(pos);
+    QModelIndex index = ui->treeView->indexAt(pos); // Posición donde hizo click d (menú) - Valido crea (eliminar)
     if (index.isValid()) {
         QMenu contextMenu(this);
-        QAction *removeAction = contextMenu.addAction("Eliminar");
+        QAction *removeAction = contextMenu.addAction("Eliminar"); // Conecta la eliminación al slot(canción)
         connect(removeAction, &QAction::triggered, this, &MainWindow::removeSelectedVideo);
-        contextMenu.exec(ui->treeView->viewport()->mapToGlobal(pos));
+        contextMenu.exec(ui->treeView->viewport()->mapToGlobal(pos)); // Muestra el menú conceptual
     }
 }
 
 void MainWindow::removeSelectedVideo()
 {
-    QModelIndex index = ui->treeView->currentIndex();
+    QModelIndex index = ui->treeView->currentIndex(); // Obtiene el indicador seleccionado - valido? = T (elimina)
     if (index.isValid()) {
         model->removeRow(index.row());
     }
