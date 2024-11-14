@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->verticalSlider->setMaximum(100);
     audioOutput->setVolume(ui->verticalSlider->value() / 100.0);  // Configura el volumen inicial
 
-
+    //conexion de señales y slots (actualiza posición video)
     connect(Player, &QMediaPlayer::durationChanged, this, &MainWindow::durationChanged);
     connect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
 
@@ -52,6 +52,9 @@ MainWindow::MainWindow(QWidget *parent)
     // Agregar las acciones al menú
     fileMenu->addAction(actionOpen);
     fileMenu->addAction(actionAddFile);
+
+    // Añade esta línea junto con las otras conexiones
+    connect(Player, &QMediaPlayer::mediaStatusChanged, this, &MainWindow::onMediaStatusChanged);
 }
 
 MainWindow::~MainWindow()
@@ -62,51 +65,55 @@ MainWindow::~MainWindow()
 //Biblioteca
 void MainWindow::setupTreeView()
 {
-    // Crear y configurar el modelo
-    model = new QStandardItemModel(this);
+    // Crear y configurar el modelo (permite gestionen elementos)
+    model = new DragDropModel(this);
     model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
 
-    // Asignar el modelo al TreeView
+    //Muestra los elementos añadidos
     ui->treeView->setModel(model);
 
     // Configurar el TreeView
-    ui->treeView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->treeView->setSelectionMode(QAbstractItemView::SingleSelection);
-    ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    ui->treeView->setEditTriggers(QAbstractItemView::NoEditTriggers); // NO Editar texto
+    ui->treeView->setSelectionMode(QAbstractItemView::SingleSelection); // Un Solo Elemento a la Vez
+    ui->treeView->setSelectionBehavior(QAbstractItemView::SelectRows);  // Se Seleccione la Fila Correspondiente (Comportamiento)
+    ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu); // Menu Contextual
 
-    // Conectar la señal clicked
-    connect(ui->treeView, &QTreeView::clicked, this, &MainWindow::on_treeView_clicked);
-    connect(ui->treeView, &QTreeView::customContextMenuRequested,
+    // Agregar estas nuevas líneas aquí:
+    ui->treeView->setDragEnabled(true); // Deslizar Canción
+    ui->treeView->setAcceptDrops(true); // Soltar al Deslizar Canción
+    ui->treeView->setDropIndicatorShown(true); // Indicador Caiga Canción
+    ui->treeView->setDragDropMode(QAbstractItemView::InternalMove); //
+
+    // Mantén las conexiones existentes
+    connect(ui->treeView, &QTreeView::clicked, this, &MainWindow::on_treeView_clicked); //Click
+    connect(ui->treeView, &QTreeView::customContextMenuRequested, //Menú Conceptual
             this, &MainWindow::showTreeViewContextMenu);
-
 }
 
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
 {
-    // Manejar el click en un elemento del TreeView
-    if (index.isValid()) {
+    if (index.isValid()) {    // Verifica elemento click - Recupera elemento (ruta) - Se estabece y reproduce
+        currentSongIndex = index.row();  // Actualizar el índice actual
         QStandardItem *item = model->itemFromIndex(index);
         QString filePath = item->data(Qt::UserRole).toString();
-        // Cargar y reproducir el video seleccionado
         Player->setSource(QUrl::fromLocalFile(filePath));
         Player->play();
     }
 }
 void MainWindow::showTreeViewContextMenu(const QPoint &pos)
 {
-    QModelIndex index = ui->treeView->indexAt(pos);
+    QModelIndex index = ui->treeView->indexAt(pos); // Posición donde hizo click d (menú) - Valido crea (eliminar)
     if (index.isValid()) {
         QMenu contextMenu(this);
-        QAction *removeAction = contextMenu.addAction("Eliminar");
+        QAction *removeAction = contextMenu.addAction("Eliminar"); // Conecta la eliminación al slot(canción)
         connect(removeAction, &QAction::triggered, this, &MainWindow::removeSelectedVideo);
-        contextMenu.exec(ui->treeView->viewport()->mapToGlobal(pos));
+        contextMenu.exec(ui->treeView->viewport()->mapToGlobal(pos)); // Muestra el menú conceptual
     }
 }
 
 void MainWindow::removeSelectedVideo()
 {
-    QModelIndex index = ui->treeView->currentIndex();
+    QModelIndex index = ui->treeView->currentIndex(); // Obtiene el indicador seleccionado - valido? = T (elimina)
     if (index.isValid()) {
         model->removeRow(index.row());
     }
@@ -122,25 +129,24 @@ void MainWindow::on_actionOpen_triggered()
         );
 
     if (!folderPath.isEmpty()) {
-        // Crear un objeto QDir para la carpeta seleccionada
+        // Limpiar el modelo existente
+        model->clear();
+        model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
+
         QDir directory(folderPath);
-
-        // Definir los filtros para los tipos de archivo que quieres cargar
         QStringList filters;
-        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv"; // Puedes añadir más formatos
-
-        // Obtener la lista de archivos que coinciden con los filtros
+        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv";
         QFileInfoList files = directory.entryInfoList(filters, QDir::Files | QDir::NoDotAndDotDot);
 
-        // Añadir cada archivo al TreeView
         foreach(const QFileInfo &fileInfo, files) {
             QStandardItem *item = new QStandardItem(fileInfo.fileName());
             item->setData(fileInfo.filePath(), Qt::UserRole);
             model->appendRow(item);
         }
 
-        // Si hay archivos en la lista, reproducir el primero
         if (!files.isEmpty()) {
+            currentSongIndex = 0;  // Inicializar el índice
+
             QVideoWidget* video = new QVideoWidget();
             video->setGeometry(
                 5, 5,
@@ -151,6 +157,7 @@ void MainWindow::on_actionOpen_triggered()
 
             Player->setVideoOutput(video);
             Player->setSource(QUrl::fromLocalFile(files.first().filePath()));
+            Player->play();  // Comenzar reproducción
 
             video->setVisible(true);
             video->show();
@@ -190,6 +197,45 @@ void MainWindow::on_actionAddFile_triggered()
     }
 }
 
+void MainWindow::playNextSong()
+{
+    qDebug() << "Intentando reproducir siguiente canción";
+    qDebug() << "Índice actual:" << currentSongIndex;
+
+    // Si no hay canciones en la lista
+    if (model->rowCount() == 0) {
+        qDebug() << "No hay canciones en la lista";
+        return;
+    }
+
+    // Incrementar el índice
+    currentSongIndex++;
+    if (currentSongIndex >= model->rowCount()) {
+        currentSongIndex = 0;  // Volver al principio si llegamos al final
+    }
+
+    QModelIndex nextIndex = model->index(currentSongIndex, 0);
+    if (nextIndex.isValid()) {
+        QString filePath = model->itemFromIndex(nextIndex)->data(Qt::UserRole).toString();
+        qDebug() << "Reproduciendo:" << filePath;
+
+        // Actualizar la selección visual en el TreeView
+        ui->treeView->setCurrentIndex(nextIndex);
+
+        Player->setSource(QUrl::fromLocalFile(filePath));
+        Player->play();
+    }
+}
+
+void MainWindow::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
+{
+    qDebug() << "Estado del reproductor cambiado:" << status;  // Para depuración
+
+    if (status == QMediaPlayer::EndOfMedia) {
+        qDebug() << "Final de la canción detectado";  // Para depuración
+        playNextSong();
+    }
+}
 //hasta aqui xd
 
 
@@ -270,3 +316,46 @@ void MainWindow::on_pushButton_adelantar_clicked()
 {
     Player->setPosition(Player->position() + 10000); // Adelanta 10 segundos
 }
+
+
+
+void MainWindow::on_pushButton_siguiente_clicked()
+{
+    {
+        // Lleva el video al final
+        qint64 duration = Player->duration();
+        Player->setPosition(duration);  // Establece la posición al final del video
+    }
+}
+
+
+void MainWindow::on_pushButton_anterior_clicked()
+{
+    // Lleva el video al segundo 0 o retrocede si está entre los segundos 0 y 2
+    qint64 position = Player->position();
+
+    if (position >= 0 && position <= 2000) {  // Si está entre 0 y 2 segundos (2000 ms)
+        qint64 newPosition = position - 5000; // Retrocede 5 segundos
+        Player->setPosition(qMax(newPosition, qint64(0)));  // No permite ir antes del segundo 0
+    } else {
+        Player->setPosition(0);  // Si no está en el rango, va directamente al segundo 0
+    }
+}
+
+
+void MainWindow::on_progressBar_sliderPressed()
+{
+    // Detener la actualización automática de la barra de progreso mientras se mueve el slider
+    disconnect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
+}
+
+void MainWindow::on_progressBar_sliderReleased()
+{
+    // Volver a conectar la señal de posición cambiada
+    connect(Player, &QMediaPlayer::positionChanged, this, &MainWindow::positionChanged);
+
+    // Establecer la nueva posición del reproductor
+    qint64 newPosition = static_cast<qint64>(ui->progressBar->value()) * 1000;
+    Player->setPosition(newPosition);
+}
+

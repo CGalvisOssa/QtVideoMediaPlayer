@@ -43,8 +43,38 @@ private slots:
     //Implemetaciones
     void showTreeViewContextMenu(const QPoint &pos);
     void removeSelectedVideo();
+    void onMediaStatusChanged(QMediaPlayer::MediaStatus status);
+    //Pasar siguiente cancion
+    void playNextSong();
+
+    void on_pushButton_siguiente_clicked();
+
+    void on_pushButton_anterior_clicked();
+
+    void on_progressBar_sliderPressed();
+
+    void on_progressBar_sliderReleased();
 
 private:
+    //clase para lista de biblioteca
+    class DragDropModel : public QStandardItemModel
+    {
+    public:
+        DragDropModel(QObject *parent = nullptr) : QStandardItemModel(parent) {}
+        Qt::DropActions supportedDropActions() const override
+        {
+            return Qt::MoveAction;
+        }
+        Qt::ItemFlags flags(const QModelIndex &index) const override
+        {
+            Qt::ItemFlags defaultFlags = QStandardItemModel::flags(index);
+            if (index.isValid())
+                return Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled | defaultFlags;
+            return Qt::ItemIsDropEnabled | defaultFlags;
+        }
+    };
+
+
     Ui::MainWindow *ui;
     QMediaPlayer *Player;
     QVideoWidget *Video; // Este widget debería ser inicializado y usado en la implementación
@@ -52,8 +82,10 @@ private:
     bool IS_Pause = true;
     bool IS_Muted = false;
     //Biblioteca
-    QStandardItemModel *model; // Modelo para el TreeView
+    DragDropModel *model; // Modelo para el TreeView
     void setupTreeView(); // Función para configurar el TreeView
+    //Indice de la cancion actual
+    int currentSongIndex = -1;  // Inicializado a -1
     //Hasta aqui
     void updateDuration(qint64 Duration);
 };
