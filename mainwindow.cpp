@@ -102,7 +102,7 @@ void MainWindow::on_treeView_clicked(const QModelIndex &index)
 }
 void MainWindow::showTreeViewContextMenu(const QPoint &pos)
 {
-    QModelIndex index = ui->treeView->indexAt(pos); // Posición donde hizo click d (menú) - Valido crea (eliminar)
+    QModelIndex index = ui->treeView->indexAt(pos); // Posición donde hizo click de (menú) - Valido crea (eliminar)
     if (index.isValid()) {
         QMenu contextMenu(this);
         QAction *removeAction = contextMenu.addAction("Eliminar"); // Conecta la eliminación al slot(canción)
@@ -113,37 +113,40 @@ void MainWindow::showTreeViewContextMenu(const QPoint &pos)
 
 void MainWindow::removeSelectedVideo()
 {
-    QModelIndex index = ui->treeView->currentIndex(); // Obtiene el indicador seleccionado - valido? = T (elimina)
+    QModelIndex index = ui->treeView->currentIndex(); // Obtiene el indicador seleccionado - valido? = T (Lo elimina)
     if (index.isValid()) {
         model->removeRow(index.row());
     }
 }
 
-void MainWindow::on_actionOpen_triggered()
+void MainWindow::on_actionOpen_triggered() //Abrir Carpeta Con Videos
 {
-    QString folderPath = QFileDialog::getExistingDirectory(
+    QString folderPath = QFileDialog::getExistingDirectory( //Permite al usuario seleccionar la carpeta
         this,
         tr("Seleccionar carpeta con videos"),
         "",
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
         );
 
-    if (!folderPath.isEmpty()) {
-        // Limpiar el modelo existente
+    if (!folderPath.isEmpty()) { // Folder vacio?
+
+        // Restablecer el modelo existente
         model->clear();
         model->setHorizontalHeaderLabels(QStringList() << "Biblioteca Musica");
 
-        QDir directory(folderPath);
+        QDir directory(folderPath); //Interaccion en el sistema de archivos de esa carpeta
         QStringList filters;
-        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv";
-        QFileInfoList files = directory.entryInfoList(filters, QDir::Files | QDir::NoDotAndDotDot);
+        filters << "*.mp4" << "*.mp3" << "*.avi" << "*.mkv"; //Filtros para Tipos de archivos
+        QFileInfoList files = directory.entryInfoList(filters, QDir::Files | QDir::NoDotAndDotDot); //Se obtiene carpeta que coinciden
+                                                                                                    //con este filtro
 
-        foreach(const QFileInfo &fileInfo, files) {
+        foreach(const QFileInfo &fileInfo, files) { //Para Cada Archivo Se Crea Un Nuevo QStandardItem con el nombre del archivo
             QStandardItem *item = new QStandardItem(fileInfo.fileName());
             item->setData(fileInfo.filePath(), Qt::UserRole);
             model->appendRow(item);
         }
 
+        //Selecciona el primer archivo (automatico)
         if (!files.isEmpty()) {
             currentSongIndex = 0;  // Inicializar el índice
 
@@ -164,7 +167,7 @@ void MainWindow::on_actionOpen_triggered()
         }
     }
 }
-void MainWindow::on_actionAddFile_triggered()
+void MainWindow::on_actionAddFile_triggered() //Agregar Archivos a la Biblioteca
 {
     QStringList fileNames = QFileDialog::getOpenFileNames(
         this,
@@ -173,14 +176,14 @@ void MainWindow::on_actionAddFile_triggered()
         tr("Archivos multimedia (*.mp4 *.mp3 *.avi *.mkv)")
         );
 
-    foreach(const QString &fileName, fileNames) {
+    foreach(const QString &fileName, fileNames) { //Itera sobre cada objeto (Informacion, nombre, ruta)
         QFileInfo fileInfo(fileName);
         QStandardItem *item = new QStandardItem(fileInfo.fileName());
         item->setData(fileName, Qt::UserRole);
         model->appendRow(item);
     }
 
-    if (!fileNames.isEmpty()) {
+    if (!fileNames.isEmpty()) { //Verificacion de archivos
         QVideoWidget* video = new QVideoWidget();
         video->setGeometry(
             5, 5,
@@ -197,29 +200,29 @@ void MainWindow::on_actionAddFile_triggered()
     }
 }
 
-void MainWindow::playNextSong()
+void MainWindow::playNextSong()//Siguiente cancion
 {
-    qDebug() << "Intentando reproducir siguiente canción";
+    qDebug() << "Intentando reproducir siguiente canción"; //Ayuda a rastrear el flujo de ejecucion y el estado de la variable
     qDebug() << "Índice actual:" << currentSongIndex;
 
-    // Si no hay canciones en la lista
+    // Si no hay canciones en la lista (comprueba si hay canciones dispobibles)
     if (model->rowCount() == 0) {
         qDebug() << "No hay canciones en la lista";
         return;
     }
 
-    // Incrementar el índice
+    // Incrementar el índice PARA APUNTAR A LA SIGUIENTE CANCION
     currentSongIndex++;
     if (currentSongIndex >= model->rowCount()) {
         currentSongIndex = 0;  // Volver al principio si llegamos al final
     }
 
-    QModelIndex nextIndex = model->index(currentSongIndex, 0);
+    QModelIndex nextIndex = model->index(currentSongIndex, 0); //Comprovar y validar siguiente cancion
     if (nextIndex.isValid()) {
         QString filePath = model->itemFromIndex(nextIndex)->data(Qt::UserRole).toString();
         qDebug() << "Reproduciendo:" << filePath;
 
-        // Actualizar la selección visual en el TreeView
+        // Actualizar la selección visual en el TreeView REFLEJAR EN LA BIBLIOTECA
         ui->treeView->setCurrentIndex(nextIndex);
 
         Player->setSource(QUrl::fromLocalFile(filePath));
@@ -227,12 +230,12 @@ void MainWindow::playNextSong()
     }
 }
 
-void MainWindow::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
+void MainWindow::onMediaStatusChanged(QMediaPlayer::MediaStatus status) //Manejo De Cambios En EL Estado Del Medio
 {
-    qDebug() << "Estado del reproductor cambiado:" << status;  // Para depuración
+    qDebug() << "Estado del reproductor cambiado:" << status;  // Indicar el estado del reproductor de medios
 
-    if (status == QMediaPlayer::EndOfMedia) {
-        qDebug() << "Final de la canción detectado";  // Para depuración
+    if (status == QMediaPlayer::EndOfMedia) { // llego al final del estado que se esta reproduciendo
+        qDebug() << "Final de la canción detectado";  // Si detecta que la funcion llega a su final DEPURA
         playNextSong();
     }
 }

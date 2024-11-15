@@ -290,13 +290,6 @@ QPushButton:pressed {
      <height>25</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuSelecciona_el_video">
-    <property name="title">
-     <string>Selecciona el video</string>
-    </property>
-    <addaction name="actionOpen"/>
-   </widget>
-   <addaction name="menuSelecciona_el_video"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionOpen">
